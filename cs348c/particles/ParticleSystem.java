@@ -1,6 +1,7 @@
 package cs348c.particles;
 
 import java.util.*;
+import java.util.HashMap;
 import javax.vecmath.*;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.util.glsl.*;
@@ -23,6 +24,8 @@ public class ParticleSystem //implements Serializable
 
     /** List of Force objects. */
     public ArrayList<Force>      F = new ArrayList<Force>();
+
+    public HashMap<Vector3d, Set<Particle>> grid = new HashMap<Vector3d, Set<Particle>>();
 
     /**
      * true iff prog has been initialized. This cannot be done in the
@@ -118,6 +121,17 @@ public class ParticleSystem //implements Serializable
         time = 0;
     }
 
+    private Point3d handleBoxCollisions(Point3d old) {
+        Point3d result = new Point3d();
+        result.x = (old.x <= 0)? 0 : old.x;
+        result.x = (old.x >= 1)? 1 : result.x; 
+        result.y = (old.y <= 0)? 0 : old.y;
+        result.y = (old.y >= 1)? 1 : result.y;         
+        result.z = (old.z <= 0)? 0 : old.z;
+        result.z = (old.z >= 1)? 1 : result.z; 
+        return result;
+    }
+
     /**
      * Simple implementation of a first-order time step. 
      * TODO: Implement the "Position Based Fluids" integrator here
@@ -142,7 +156,10 @@ public class ParticleSystem //implements Serializable
             p.v.scaleAdd(dt, p.f, p.v); //p.v += dt * p.f;
             p.x.scaleAdd(dt, p.v, p.x); //p.x += dt * p.v;
 
+            p.x = handleBoxCollisions(p.x);
+
         }
+
 
         time += dt;
     }
