@@ -132,14 +132,71 @@ public class ParticleSystem //implements Serializable
         return result;
     }
 
+    private void addP2Grid(Particle p) {
+        Vector3d cell = new Vector3d((int) (p.x.x / Constants.GRID_SIZE),
+                                     (int) (p.x.y / Constants.GRID_SIZE),
+                                     (int) (p.x.z / Constants.GRID_SIZE));
+        if (!grid.containsKey(cell)) {
+            Set<Particle> residents = new HashSet<Particle>();
+            residents.add(p);
+            grid.put(cell, residents);
+        } else {
+
+            Set<Particle> residents = grid.get(cell);
+            residents.add(p);
+            grid.put(cell, residents);
+        }
+    }
+
+    private double distance(Particle p, Particle q) {
+        Vector3d diff = new Vector3d(p.x.x - q.x.x, p.x.y - q.x.y, p.x.z - q.x.z);
+        return diff.length();
+    }
+
+    private Set<Particle> getCellNeighbors(Vector3d cell, Particle p) {
+        Set<Particle> Ni = new HashSet<Particle>();
+        for (Particle q : grid.get(cell)) {
+            if (p != q && distance(p, q) <= Constants.H) {
+                Ni.add(q);
+            }
+        }
+        
+        return Ni;
+    } 
+
+    private Set<Particle> getNeighbors(Particle p) {
+        int x = (int) (p.x.x / Constants.GRID_SIZE);
+        int y = (int) (p.x.y / Constants.GRID_SIZE);
+        int z = (int) (p.x.z / Constants.GRID_SIZE);
+        Set<Particle> Ni = new HashSet<Particle>();
+
+        for (int i = x - 1; i < x + 2; i++) {
+            for (int j = y - 1; j < y + 2; j++) {
+                for (int k = z - 1; k < z + 2; k++) {
+                    Vector3d curr = new Vector3d(i, j, k);
+                    if (grid.containsKey(curr)) {
+                        Ni.addAll(getCellNeighbors(curr, p));
+                    }
+                }
+            }
+        }
+
+        return Ni;
+    }
+
     /**
      * Simple implementation of a first-order time step. 
      * TODO: Implement the "Position Based Fluids" integrator here
      */
     public synchronized void advanceTime(double dt)
     {
+        grid = new HashMap<Vector3d, Set<Particle>>();
+
         /// Clear force accumulators:
-        for(Particle p : P)  p.f.set(0,0,0);
+        for(Particle p : P)  {
+            p.f.set(0,0,0);
+            addP2Grid(p);
+        }
 
         {/// Gather forces: (TODO)
             for(Force force : F) {
@@ -153,15 +210,23 @@ public class ParticleSystem //implements Serializable
 
         /// TIME-STEP: (Symplectic Euler for now):
         for(Particle p : P) {
+            Set<Particle> Ni = getNeighbors(p);
+
             p.v.scaleAdd(dt, p.f, p.v); //p.v += dt * p.f;
             p.x.scaleAdd(dt, p.v, p.x); //p.x += dt * p.v;
+            //for (n : Ni) {
+                //handle XPSHViscosity
 
+            //}
+            System.out.println(Ni.size());
+            //p.v = XPSHViscosity(p.v);
             p.x = handleBoxCollisions(p.x);
 
         }
 
 
         time += dt;
+        grid.clear();
     }
 
     /**
