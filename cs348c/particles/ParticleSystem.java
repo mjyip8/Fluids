@@ -148,15 +148,40 @@ public class ParticleSystem //implements Serializable
         }
     }
 
+    private double Wpoly6(Vector3d r, double h) {
+        //if (4 * Math.PI * Math.pow(h, 9) == 0.) {
+            //return 0.;
+        //}
+        //System.out.println("r = " + r);
+        //System.out.println("h = " + h);
+        double result = 315. / (64 * Math.PI * Math.pow(h, 9));
+        //System.out.println("ratio = " + result);
+        result *= Math.pow((h * h - r.lengthSquared()), 3);
+        //System.out.println("rest = " + Math.pow((h * h - r.lengthSquared()), 3));
+        result = (result == Double.NEGATIVE_INFINITY)? 0. : result;
+        System.out.println("Wpoly6 = " + result);
+        return result;
+    }
+
+    /*private double Wpoly6(Vector3d r, double h) {
+        double result = Math.pow(Math.pow(h, 2) - r.lengthSquared(), 3) * 315. /(64. * Math.PI * Math.pow(h, 9));
+        System.out.println("Wpoly6 = " + result);
+        return result;
+    }*/
+
+    private Vector3d Wspiky(Vector3d r, double h) {
+        return VMath.scalMult(VMath.norm(r), Math.pow(h - r.length(), 2) * 45. / (Math.PI * Math.pow(h, 6)));
+    }
+
     private double distance(Particle p, Particle q) {
-        Vector3d diff = new Vector3d(p.x.x - q.x.x, p.x.y - q.x.y, p.x.z - q.x.z);
+        Vector3d diff = VMath.subtract(p.x, q.x);
         return diff.length();
     }
 
     private Set<Particle> getCellNeighbors(Vector3d cell, Particle p) {
         Set<Particle> Ni = new HashSet<Particle>();
         for (Particle q : grid.get(cell)) {
-            if (p != q && distance(p, q) <= Constants.H) {
+            if (p != q && distance(p, q) < Constants.H) {
                 Ni.add(q);
             }
         }
@@ -182,6 +207,24 @@ public class ParticleSystem //implements Serializable
         }
 
         return Ni;
+    }
+
+    private Vector3d XPSHViscosity(Particle pi, Set<Particle> Ni) {
+        System.out.println("Initial v = " + pi.v);
+
+        Vector3d result = new Vector3d(0., 0., 0.);
+
+        for (Particle pj : Ni) {
+            Vector3d vij = VMath.subtract(pj.v, pi.v);
+            double W = Wpoly6(VMath.subtract(pi.x, pj.x), Constants.H);
+            if (W != 0.) {
+                result.add(VMath.scalMult(vij, Constants.C * W));                    
+            }
+        }
+        System.out.println("Sum of neighbors = " + result);
+        Vector3d ans = VMath.add(pi.v, result);
+        System.out.println("Final v = " + ans);
+        return ans;
     }
 
     /**
@@ -218,8 +261,7 @@ public class ParticleSystem //implements Serializable
                 //handle XPSHViscosity
 
             //}
-            System.out.println(Ni.size());
-            //p.v = XPSHViscosity(p.v);
+            p.v = XPSHViscosity(p, Ni);
             p.x = handleBoxCollisions(p.x);
 
         }
