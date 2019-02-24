@@ -232,6 +232,12 @@ public class ParticleSystem //implements Serializable
         return result;
     }
 
+    // EQUATION 1
+    private double Ci(Particle p) {
+        return (getDensity(p) / Constants.RHO) - 1;
+    }
+
+    // EQUATION 2
     private double getDensity(Particle p) {
         double density = 0.;
         for (Particle q : P) {
@@ -240,19 +246,25 @@ public class ParticleSystem //implements Serializable
         return density;
     }
 
-    private double Ci(Particle p) {
-        return (getDensity(p) / Constants.RHO) - 1;
-    }
-
-    private double getLambda(Particle p) {
-        Vector3d sum = new Vector3d(0., 0., 0.);
+    // EQUATION 8
+    private double sumKGradCiSq(Particle p) {
+        double sum_grad_Ci = 0.;
+        Vector3d grad_Ci = new Vector3d(0., 0., 0.);
 
         for (Particle q : p.Ni) {
-            sum.add(Wspiky(subtract(p.x, q.x), Constants.H));
-        }
-        sum.scaleMultiply(1/Constants.RHO);     
+            Vector3d grad_pk_Ci = Wspiky(subtract(p.x, q.x), Constants.H);
+            grad_pk_Ci.scaleMultiply( 1 / Constants.RHO);
+            sum_grad_Ci += grad_pk_Ci.lengthSquared();
 
-        return -Ci(p)/(sum + Constants.EPSILON);
+            grad_Ci.add(grad_pk_Ci);
+        }
+
+        return sum_grad_Ci + grad_Ci.lengthSquared();
+    }
+
+    // EQUATION 11
+    private double calcLambda(Particle p) {
+        return -Ci(p)/(sumKGradCiSq(p) + Constants.EPSILON);
     }
 
     /**
@@ -289,7 +301,8 @@ public class ParticleSystem //implements Serializable
 
         for (int i = 0; i < Constants.DENSITY_IT; i++) {
             for (Particle p : P) {
-                // calculate lambda
+                // calculation lambda
+                p.lambda = calcLambda(p);
             }
 
             for (Particle p : P) {

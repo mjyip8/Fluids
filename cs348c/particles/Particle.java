@@ -42,6 +42,8 @@ public class Particle
     /** Force accumulator. */
     Vector3d f = new Vector3d();
 
+    double lambda = 0;
+
     /**
      * Constructs particle with the specified material/undeformed
      * coordinate, x0.
