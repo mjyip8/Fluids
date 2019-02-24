@@ -37,8 +37,6 @@ public class Particle
     /** Velocity. */
     Vector3d v = new Vector3d();
     
-    Vector3d v_star = new Vector3d();
-
     /** Force accumulator. */
     Vector3d f = new Vector3d();
 

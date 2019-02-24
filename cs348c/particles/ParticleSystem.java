@@ -241,7 +241,7 @@ public class ParticleSystem //implements Serializable
     private double getDensity(Particle p) {
         double density = 0.;
         for (Particle q : P) {
-            density += (q.m * Wpoly6(new Vector3d()))
+            density += (q.m * Wpoly6(subtract(p, q), Constants.H));
         }
         return density;
     }
@@ -252,7 +252,7 @@ public class ParticleSystem //implements Serializable
         Vector3d grad_Ci = new Vector3d(0., 0., 0.);
 
         for (Particle q : p.Ni) {
-            Vector3d grad_pk_Ci = Wspiky(subtract(p.x, q.x), Constants.H);
+            Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x, q.x), Constants.H);
             grad_pk_Ci.scaleMultiply( 1 / Constants.RHO);
             sum_grad_Ci += grad_pk_Ci.lengthSquared();
 
@@ -265,6 +265,16 @@ public class ParticleSystem //implements Serializable
     // EQUATION 11
     private double calcLambda(Particle p) {
         return -Ci(p)/(sumKGradCiSq(p) + Constants.EPSILON);
+    }
+
+    // EQUATION 12
+    private double calcDeltaP(Particle p) {
+        delta_p = Vector3d(0., 0., 0.);
+        for (Particle q : p.Ni) {
+            delta_p.add(VMath.scalMult(Wspiky(VMath.subtract(p, q)), p.lambda + q.lambda));
+        }
+
+        return delta_p / Constants.RHO;
     }
 
     /**
@@ -288,7 +298,7 @@ public class ParticleSystem //implements Serializable
             // HACK: GRAVITY (NEED TO USE Force OBJECT)
             for(Particle p : P) {
                 p.f.y -= p.m * 10.f;
-                p.v_star.scaleAdd(dt, p.f, p.v); //p.v += dt * p.f;
+                p.v.scaleAdd(dt, p.f, p.v); //p.v += dt * p.f;
                 p.x_star = VMath.add(p.x, VMath.scalMult(p.v_star, Constants.DT));
                 addP2Grid(p);
             }
@@ -308,16 +318,15 @@ public class ParticleSystem //implements Serializable
             for (Particle p : P) {
                 //calculate delta pi
                 //perform collision detection and response
-                p.x = p.x_star;
-                p.x = handleBoxCollisions(p.x);
+                p.x_star.add(calcDeltaP(p));
+                p.x_star = handleBoxCollisions(p.x_star);
             }
         }
 
         /// TIME-STEP: (Symplectic Euler for now):
         for (Particle p : P) {
-
-            p.v_star = scalDiv(VMath.subtract(p.x_star, p.x), dt);
-
+            p.v = scalDiv(VMath.subtract(p.x_star, p.x), dt);
+            p.x = p.x_star;
         }
 
         /*for (Particle p : P) {
