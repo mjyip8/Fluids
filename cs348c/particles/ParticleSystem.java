@@ -261,7 +261,7 @@ public class ParticleSystem //implements Serializable
                 //handle XPSHViscosity
 
             //}
-            p.v = XPSHViscosity(p, Ni);
+            //p.v = XPSHViscosity(p, Ni);
             p.x = handleBoxCollisions(p.x);
 
         }
