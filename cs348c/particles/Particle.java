@@ -27,11 +27,17 @@ public class Particle
     /** Deformed Position. */
     Point3d  x = new Point3d();
 
+    Point3d x_star = new Point3d();
+
+    Set<Particle> Ni = new HashSet<Particle>();
+
     /** Undeformed/material Position. */
     Point3d  x0 = new Point3d();
 
     /** Velocity. */
     Vector3d v = new Vector3d();
+    
+    Vector3d v_star = new Vector3d();
 
     /** Force accumulator. */
     Vector3d f = new Vector3d();
