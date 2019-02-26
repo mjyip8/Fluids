@@ -51,6 +51,10 @@ public class VMath
 		return new Vector3d(v.x / c, v.y / c, v.z / c);
 	}
 
+	public static Vector3d scalDiv(Point3d v, double c) {
+		return new Vector3d(v.x / c, v.y / c, v.z / c);
+	}
+
 	public static Vector3d norm(Vector3d v) {
 		return (v.length() == 0)? v : scalDiv(v, v.length());
 	}

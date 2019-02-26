@@ -1,6 +1,8 @@
 package cs348c.particles;
 
 import javax.vecmath.*;
+import java.util.*;
+import java.util.HashSet;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.glu.*;
 

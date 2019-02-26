@@ -1,7 +1,7 @@
 package cs348c.particles;
 
 import java.util.*;
-import java.util.HashMap;
+import java.util.HashSet;
 import javax.vecmath.*;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.util.glsl.*;
@@ -121,21 +121,26 @@ public class ParticleSystem //implements Serializable
         time = 0;
     }
 
+    private double clamp(double x) {
+        if (x <= 0.) return 0;
+        if (x >= 1.) return 1.;
+        return x;
+    }
+
     private Point3d handleBoxCollisions(Point3d old) {
-        Point3d result = new Point3d();
-        result.x = (old.x <= 0)? 0 : old.x;
-        result.x = (old.x >= 1)? 1 : result.x; 
-        result.y = (old.y <= 0)? 0 : old.y;
-        result.y = (old.y >= 1)? 1 : result.y;         
-        result.z = (old.z <= 0)? 0 : old.z;
-        result.z = (old.z >= 1)? 1 : result.z; 
+        Point3d result = new Point3d(old);
+        result.x = clamp(result.x);
+        result.y = clamp(result.y);
+        result.z = clamp(result.z);
         return result;
     }
 
     private void addP2Grid(Particle p) {
-        Vector3d cell = new Vector3d((int) (p.x_star.x / Constants.GRID_SIZE),
-                                     (int) (p.x_star.y / Constants.GRID_SIZE),
-                                     (int) (p.x_star.z / Constants.GRID_SIZE));
+        int x = (int) (.999999999999 * p.x_star.x * Constants.GRID_SIZE);
+        int y = (int) (.999999999999 * p.x_star.y * Constants.GRID_SIZE);
+        int z = (int) (.999999999999 * p.x_star.z * Constants.GRID_SIZE);
+
+        Vector3d cell = new Vector3d(x, y, z);
         if (!grid.containsKey(cell)) {
             Set<Particle> residents = new HashSet<Particle>();
             residents.add(p);
@@ -148,39 +153,28 @@ public class ParticleSystem //implements Serializable
     }
 
     private double Wpoly6(Vector3d r, double h) {
-        //if (4 * Math.PI * Math.pow(h, 9) == 0.) {
-            //return 0.;
-        //}
-        //System.out.println("r = " + r);
-        //System.out.println("h = " + h);
         if (r.length() < 0. || r.length() >= h) {
             return 0.;
         }
 
         double result = 315. / (64. * Math.PI * Math.pow(h, 9));
-        //System.out.println("ratio = " + result);
         result *= Math.pow((h * h - r.lengthSquared()), 3);
-        //System.out.println("rest = " + Math.pow((h * h - r.lengthSquared()), 3));
-        result = (result == Double.NEGATIVE_INFINITY)? 0. : result;
-        System.out.println("Wpoly6 = " + result);
+        //System.out.println("Wpoly6 = " + result);
         return result;
     }
 
-    /*private double Wpoly6(Vector3d r, double h) {
-        double result = Math.pow(Math.pow(h, 2) - r.lengthSquared(), 3) * 315. /(64. * Math.PI * Math.pow(h, 9));
-        System.out.println("Wpoly6 = " + result);
-        return result;
-    }*/
 
     private Vector3d Wspiky(Vector3d r, double h) {
         if (r.length() < 0. || r.length() >= h) {
-            return 0.;
+            return new Vector3d(0., 0., 0.);
         }
-        return VMath.scalMult(VMath.norm(r), Math.pow(h - r.length(), 2) * 45. / (Math.PI * Math.pow(h, 6)));
+        Vector3d norm = VMath.norm(r);
+        double scale = Math.pow(h - r.length(), 2) * 45. / (Math.PI * Math.pow(h, 6));
+        return VMath.scalMult(norm, scale);
     }
 
     private double distance(Particle p, Particle q) {
-        Vector3d diff = VMath.subtract(p.x, q.x);
+        Vector3d diff = VMath.subtract(p.x_star, q.x_star);
         return diff.length();
     }
 
@@ -196,14 +190,14 @@ public class ParticleSystem //implements Serializable
     } 
 
     private Set<Particle> getNeighbors(Particle p) {
-        int x = (int) (p.x_star.x / Constants.GRID_SIZE);
-        int y = (int) (p.x_star.y / Constants.GRID_SIZE);
-        int z = (int) (p.x_star.z / Constants.GRID_SIZE);
+        int x = (int) (.999999999999 * p.x_star.x * Constants.GRID_SIZE);
+        int y = (int) (.999999999999 * p.x_star.y * Constants.GRID_SIZE);
+        int z = (int) (.999999999999 * p.x_star.z * Constants.GRID_SIZE);
         Set<Particle> Ni = new HashSet<Particle>();
 
-        for (int i = x - 1; i < x + 2; i++) {
-            for (int j = y - 1; j < y + 2; j++) {
-                for (int k = z - 1; k < z + 2; k++) {
+        for (int i = Math.max(0, x - 1); i < Math.min(Constants.GRID_SIZE, x + 2); i++) {
+            for (int j = Math.max(0, y - 1); j < Math.min(Constants.GRID_SIZE, y + 2); j++) {
+                for (int k = Math.max(0, z - 1); k < Math.min(Constants.GRID_SIZE, z + 2); k++) {
                     Vector3d curr = new Vector3d(i, j, k);
                     if (grid.containsKey(curr)) {
                         Ni.addAll(getCellNeighbors(curr, p));
@@ -216,7 +210,7 @@ public class ParticleSystem //implements Serializable
     }
 
     private Vector3d XPSHViscosity(Particle pi) {
-        System.out.println("Initial v = " + pi.v);
+        //System.out.println("Initial v = " + pi.v);
 
         Vector3d result = new Vector3d(0., 0., 0.);
 
@@ -227,22 +221,25 @@ public class ParticleSystem //implements Serializable
                 result.add(VMath.scalMult(vij, W));                    
             }
         }
-        result.scaleMultiply(Constants.C);
+        result.scale(Constants.C);
         System.out.println("Sum of neighbors = " + result);
         return result;
     }
 
     // EQUATION 1
     private double Ci(Particle p) {
-        return (getDensity(p) / Constants.RHO) - 1;
+        double density = getDensity(p);
+        double result = (density / Constants.RHO) - 1;
+        return result;
     }
 
     // EQUATION 2
     private double getDensity(Particle p) {
         double density = 0.;
-        for (Particle q : P) {
-            density += (q.m * Wpoly6(subtract(p, q), Constants.H));
+        for (Particle q : p.Ni) {
+            density += (q.m * Wpoly6(VMath.subtract(p.x_star, q.x_star), Constants.H));
         }
+        density += (p.m * Wpoly6(VMath.subtract(p.x_star, p.x_star), Constants.H));
         return density;
     }
 
@@ -252,13 +249,14 @@ public class ParticleSystem //implements Serializable
         Vector3d grad_Ci = new Vector3d(0., 0., 0.);
 
         for (Particle q : p.Ni) {
-            Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x, q.x), Constants.H);
-            grad_pk_Ci.scaleMultiply( 1 / Constants.RHO);
+            Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
+            grad_pk_Ci.scale( 1 / Constants.RHO);
             sum_grad_Ci += grad_pk_Ci.lengthSquared();
 
             grad_Ci.add(grad_pk_Ci);
         }
 
+        double total = sum_grad_Ci + grad_Ci.lengthSquared();
         return sum_grad_Ci + grad_Ci.lengthSquared();
     }
 
@@ -268,13 +266,25 @@ public class ParticleSystem //implements Serializable
     }
 
     // EQUATION 12
-    private double calcDeltaP(Particle p) {
-        delta_p = Vector3d(0., 0., 0.);
+    private Vector3d calcDeltaP(Particle p) {
+        Vector3d delta_p = new Vector3d(0., 0., 0.);
         for (Particle q : p.Ni) {
-            delta_p.add(VMath.scalMult(Wspiky(VMath.subtract(p, q)), p.lambda + q.lambda));
-        }
+            //System.out.println("x_star" + p.x_star);
+            //System.out.println("q x_star" + q.x_star);
+            Vector3d spikyboi = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
+            //System.out.println("spiky boi = " + spikyboi);
+            double lsum = p.lambda + q.lambda;
+            //System.out.println("p lambda = " + p.lambda);
+            //System.out.println("q lambda = " + q.lambda);
 
-        return delta_p / Constants.RHO;
+            //System.out.println("lambda sum = " + lsum);
+            Vector3d smallboi = VMath.scalMult(spikyboi, p.lambda + q.lambda);
+            //System.out.println("smallboi = " + smallboi);
+            delta_p.add(smallboi);
+        }
+        //System.out.println("delta p = ###############" + VMath.scalDiv(delta_p, Constants.RHO));
+
+        return VMath.scalDiv(delta_p, Constants.RHO);
     }
 
     /**
@@ -297,12 +307,16 @@ public class ParticleSystem //implements Serializable
 
             // HACK: GRAVITY (NEED TO USE Force OBJECT)
             for(Particle p : P) {
+                p.Ni.clear();
                 p.f.y -= p.m * 10.f;
                 p.v.scaleAdd(dt, p.f, p.v); //p.v += dt * p.f;
-                p.x_star = VMath.add(p.x, VMath.scalMult(p.v_star, Constants.DT));
-                addP2Grid(p);
+                //System.out.println("old v = " + p.v);
+                p.x_star.scaleAdd(dt, p.v, p.x);
             }
 
+            for (Particle p : P) {
+                addP2Grid(p);
+            }
         }
 
         for (Particle p : P) {
@@ -311,30 +325,47 @@ public class ParticleSystem //implements Serializable
 
         for (int i = 0; i < Constants.DENSITY_IT; i++) {
             for (Particle p : P) {
-                // calculation lambda
+                // calculate lambda
                 p.lambda = calcLambda(p);
             }
 
             for (Particle p : P) {
                 //calculate delta pi
                 //perform collision detection and response
-                p.x_star.add(calcDeltaP(p));
+                Vector3d delta_p = calcDeltaP(p);
+                if (delta_p.length() > 0.1) {
+                    System.out.println("------------------CHECK HERE delta p " + delta_p);
+                } 
+                p.x_star.add(delta_p);
+                //ystem.out.println("delta p = " + delta_p);
                 p.x_star = handleBoxCollisions(p.x_star);
             }
         }
 
+
         /// TIME-STEP: (Symplectic Euler for now):
         for (Particle p : P) {
-            p.v = scalDiv(VMath.subtract(p.x_star, p.x), dt);
-            p.x = p.x_star;
+            p.v = VMath.scalDiv(VMath.subtract(p.x_star, p.x), dt);
+            if (p.v.length() * dt > 0.1) {
+                System.out.println("------------------CHECK HERE new v " + p.v);
+            } 
+            //System.out.println("p.x = " + p.x);
+            //System.out.println("p.x_star = " + p.x_star);
+            //System.out.println("difference = " + VMath.subtract(p.x_star, p.x));
+            //System.out.println("dt = " + dt);
+            //System.out.println("p new v = " + p.v);
+            p.x = new Point3d(p.x_star);
+            //System.out.println("p new x= " + p.x);
+
         }
 
         /*for (Particle p : P) {
             //apply XPSH 
             p.v_star = VMath.add(p.v_star, XPSHViscosity(p));
-            p.v = p.v_star;
+            p.v = new Point3d(p.v_star);
         }*/
 
+        System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++");
 
         time += dt;
         grid.clear();
