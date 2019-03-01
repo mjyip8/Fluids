@@ -136,6 +136,8 @@ public class ParticleSystem //implements Serializable
     }
 
     private void addP2Grid(Particle p) {
+
+
         int x = (int) (.999999999999 * p.x_star.x * Constants.GRID_SIZE);
         int y = (int) (.999999999999 * p.x_star.y * Constants.GRID_SIZE);
         int z = (int) (.999999999999 * p.x_star.z * Constants.GRID_SIZE);
@@ -211,8 +213,6 @@ public class ParticleSystem //implements Serializable
     }
 
     private Vector3d XPSHViscosity(Particle pi) {
-        //System.out.println("Initial v = " + pi.v);
-
         Vector3d result = new Vector3d(0., 0., 0.);
 
         for (Particle pj : pi.Ni) {
@@ -236,12 +236,12 @@ public class ParticleSystem //implements Serializable
     // EQUATION 2
     private double getDensity(Particle p) {
         double density = 0.;
-        for (Particle q : P) {//p.Ni) {
-            if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
+        for (Particle q : p.Ni) {//p.Ni) {
+            //if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
                 density += (q.m * Wpoly6(VMath.subtract(p.x_star, q.x_star), Constants.H));
-            }
+            //}
         }
-        density += (p.m * Wpoly6(new Vector3d(0,0,0), Constants.H));
+        density += (p.m * Wpoly6(new Vector3d(0., 0., 0.), Constants.H));
         return density;
     }
 
@@ -252,14 +252,14 @@ public class ParticleSystem //implements Serializable
 
         if (p.Ni.size() == 0) return 0.;
 
-        for (Particle q : P) {
-            if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
+        for (Particle q : p.Ni) {
+            //if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
                 Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
                 grad_pk_Ci.scale( 1 / Constants.RHO);
                 sum_grad_Ci += grad_pk_Ci.lengthSquared();
 
                 grad_Ci.add(grad_pk_Ci);
-            }
+            //}
         }
 
         double total = sum_grad_Ci + grad_Ci.lengthSquared();
@@ -274,14 +274,14 @@ public class ParticleSystem //implements Serializable
     // EQUATION 12
     private Vector3d calcDeltaP(Particle p) {
         Vector3d delta_p = new Vector3d(0., 0., 0.);
-        for (Particle q : P) { //p.Ni
-            if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
+        for (Particle q : p.Ni) { //p.Ni
+            //if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
                 Vector3d pij = VMath.subtract(p.x_star, q.x_star);
                 Vector3d gradW = Wspiky(pij, Constants.H);
                 double s_corr = calcSCorr(pij);
                 gradW.scale(p.lambda + q.lambda - s_corr);
                 delta_p.add(gradW);
-            }
+            //}
         }
         return VMath.scalDiv(delta_p, Constants.RHO);
     }
@@ -349,6 +349,7 @@ public class ParticleSystem //implements Serializable
                 p.v.scaleAdd(dt, p.f, p.v); //p.v += dt * p.f;
                 //System.out.println("old v = " + p.v);
                 p.x_star.scaleAdd(dt, p.v, p.x);
+                p.x_star = handleBoxCollisions(p.x_star);
             }
 
             for (Particle p : P) {
@@ -403,8 +404,6 @@ public class ParticleSystem //implements Serializable
             //apply XPSH 
             p.v.add(XPSHViscosity(p));
         }*/
-
-        System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++");
 
         time += dt;
         grid.clear();
