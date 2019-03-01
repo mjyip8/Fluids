@@ -236,8 +236,10 @@ public class ParticleSystem //implements Serializable
     // EQUATION 2
     private double getDensity(Particle p) {
         double density = 0.;
-        for (Particle q : p.Ni) {
-            density += (q.m * Wpoly6(VMath.subtract(p.x_star, q.x_star), Constants.H));
+        for (Particle q : P) {//p.Ni) {
+            if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
+                density += (q.m * Wpoly6(VMath.subtract(p.x_star, q.x_star), Constants.H));
+            }
         }
         density += (p.m * Wpoly6(new Vector3d(0,0,0), Constants.H));
         return density;
@@ -250,12 +252,14 @@ public class ParticleSystem //implements Serializable
 
         if (p.Ni.size() == 0) return 0.;
 
-        for (Particle q : p.Ni) {
-            Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
-            grad_pk_Ci.scale( 1 / Constants.RHO);
-            sum_grad_Ci += grad_pk_Ci.lengthSquared();
+        for (Particle q : P) {
+            if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
+                Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
+                grad_pk_Ci.scale( 1 / Constants.RHO);
+                sum_grad_Ci += grad_pk_Ci.lengthSquared();
 
-            grad_Ci.add(grad_pk_Ci);
+                grad_Ci.add(grad_pk_Ci);
+            }
         }
 
         double total = sum_grad_Ci + grad_Ci.lengthSquared();
@@ -270,12 +274,14 @@ public class ParticleSystem //implements Serializable
     // EQUATION 12
     private Vector3d calcDeltaP(Particle p) {
         Vector3d delta_p = new Vector3d(0., 0., 0.);
-        for (Particle q : p.Ni) {
-            Vector3d pij = VMath.subtract(p.x_star, q.x_star);
-            Vector3d gradW = Wspiky(pij, Constants.H);
-            double s_corr = calcSCorr(pij);
-            gradW.scale(p.lambda + q.lambda - s_corr);
-            delta_p.add(gradW);
+        for (Particle q : P) { //p.Ni
+            if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
+                Vector3d pij = VMath.subtract(p.x_star, q.x_star);
+                Vector3d gradW = Wspiky(pij, Constants.H);
+                double s_corr = calcSCorr(pij);
+                gradW.scale(p.lambda + q.lambda - s_corr);
+                delta_p.add(gradW);
+            }
         }
         return VMath.scalDiv(delta_p, Constants.RHO);
     }
@@ -316,60 +322,6 @@ public class ParticleSystem //implements Serializable
         f.scale(Constants.EPSILON);
         return f;
     }
-
-    /*private double sumGradPk(Particle p) {
-         Vector3d grad_pi = new Vector3d(0., 0., 0.);
-        if (p.Ni.size() == 0) return 0.;
-
-        Point3d pi = new Point3d(p.x_star);
-        double mi = p.m;
-        Vector3d grad_p = new Vector3d(0., 0., 0.);
-        double sum_pk = 0.;
-        for (Particle j : p.Ni) {
-            double mj = j.m;
-            Point3d pj = new Point3d(j.x_star);
-            Vector3d spiky = Wspiky(VMath.subtract(pi, pj), Constants.H);
-            spiky.scale(1/Constants.RHO);
-            sum_pk += spiky.lengthSquared();
-            grad_p.add(spiky);
-        }
-        return sum_pk + grad_p.lengthSquared();
-    } 
-
-    private double Ci(Particle p) {
-        return (getDensity(p) / Constants.RHO) - 1;
-    }
-
-    private double getDensity(Particle p) {
-        Point3d pi = new Point3d(p.x_star);
-        double density = 0.0;
-        for (Particle j : p.Ni) {
-            Point3d pj = new Point3d(j.x_star);
-            density += j.m * Wpoly6(VMath.subtract(pi, pj), Constants.H);
-        }
-        return density + p.m * Wpoly6(VMath.subtract(pi, pi), Constants.H);
-    }
-
-    private double calcLambda(Particle p) {
-        double density_constraint = Ci(p);
-        double sum_grad_Pk = sumGradPk(p);
-        return - density_constraint / (sum_grad_Pk + Constants.EPSILON); 
-    }
-
-    private Vector3d calcDeltaP(Particle p) {
-        Vector3d sum = new Vector3d(0., 0., 0.);
-        Point3d pi = new Point3d(p.x_star);
-        double lambda_i = p.lambda;
-        for (Particle j : p.Ni) {
-            Point3d pj = new Point3d(j.x_star);
-            double lambda_j = j.lambda;
-            Vector3d grad = Wspiky(VMath.subtract(pi, pj), Constants.H);
-            grad.scale(lambda_i + lambda_j);
-            sum.add(grad);
-        }
-        sum.scale(1/Constants.RHO);
-        return sum;
-    } */
 
     /**
      * Simple implementation of a first-order time step. 
