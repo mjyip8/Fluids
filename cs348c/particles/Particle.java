@@ -31,7 +31,7 @@ public class Particle
 
     Point3d x_star = new Point3d();
 
-    Point3d dp = new Point3d();
+    Vector3d dp = new Vector3d();
 
     Set<Particle> Ni = new HashSet<Particle>();
 

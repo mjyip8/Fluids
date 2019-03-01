@@ -245,7 +245,7 @@ public class ParticleSystemBuilder implements GLEventListener
         {
             /// TODO: OVERRIDE THIS INTEGRATOR (Doesn't use Force objects properly)
             if(simulate) {
-                if(false) {//ONE EULER STEP
+                if(true) {//ONE EULER STEP
                     PS.advanceTime(DT);
                 }
                 else {//MULTIPLE STEPS FOR STABILITY WITH FORWARD EULER (UGH!)
