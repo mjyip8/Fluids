@@ -18,7 +18,7 @@ public interface Constants
     public static final double S_CORR = 0.0001;
     public static final double DELTA_Q = .03;
     public static final double N = 4;
-    public static final double C = 0.01;
+    public static final double C = 0.00001;
 
     public static final int GRID_SIZE = 10;
 

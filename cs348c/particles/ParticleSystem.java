@@ -212,17 +212,23 @@ public class ParticleSystem //implements Serializable
         return Ni;
     }
 
-    private Vector3d XPSHViscosity(Particle pi) {
+    private Vector3d XPSHViscosity(Particle p) {
         Vector3d result = new Vector3d(0., 0., 0.);
 
-        for (Particle pj : pi.Ni) {
-            Vector3d vij = VMath.subtract(pj.v, pi.v);
-            double W = Wpoly6(VMath.subtract(pi.x, pj.x), Constants.H);
+        for (Particle q : p.Ni) {
+            Vector3d vij = VMath.subtract(q.v, p.v);
+            //System.out.println("Vij = " + vij);
+            Vector3d pij = VMath.subtract(p.x_star, q.x_star);
+            //System.out.println("pij = " + pij);
+            double W = Wpoly6(pij, Constants.H);
+            //System.out.println("W = " + W);
             vij.scale(W);
+            //System.out.println("vij = " + vij);
+            //System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
+
             result.add(vij);                    
         }
         result.scale(Constants.C);
-        System.out.println("Sum of neighbors = " + result);
         return result;
     }
 
@@ -387,23 +393,10 @@ public class ParticleSystem //implements Serializable
             v.sub(p.x);
             v.scale(1 / dt);
             p.v = v;
-         
-            //p.v = VMath.scalDiv(VMath.subtract(p.x_star, p.x), dt);
-
-            //System.out.println("p.x = " + p.x);
-            //System.out.println("p.x_star = " + p.x_star);
-            //System.out.println("difference = " + VMath.subtract(p.x_star, p.x));
-            //System.out.println("dt = " + dt);
-            //System.out.println("p new v = " + p.v);
-            p.x = new Point3d(p.x_star);
-            //System.out.println("p new x= " + p.x);
-
-        }
-
-        /*for (Particle p : P) {
-            //apply XPSH 
             p.v.add(XPSHViscosity(p));
-        }*/
+
+            p.x = new Point3d(p.x_star);
+        }
 
         time += dt;
         grid.clear();
