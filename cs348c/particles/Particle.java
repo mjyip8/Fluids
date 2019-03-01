@@ -33,6 +33,8 @@ public class Particle
 
     Vector3d dp = new Vector3d();
 
+    Vector3d omega = new Vector3d();
+
     Set<Particle> Ni = new HashSet<Particle>();
 
     /** Undeformed/material Position. */

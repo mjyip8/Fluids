@@ -217,15 +217,9 @@ public class ParticleSystem //implements Serializable
 
         for (Particle q : p.Ni) {
             Vector3d vij = VMath.subtract(q.v, p.v);
-            //System.out.println("Vij = " + vij);
             Vector3d pij = VMath.subtract(p.x_star, q.x_star);
-            //System.out.println("pij = " + pij);
             double W = Wpoly6(pij, Constants.H);
-            //System.out.println("W = " + W);
             vij.scale(W);
-            //System.out.println("vij = " + vij);
-            //System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
-
             result.add(vij);                    
         }
         result.scale(Constants.C);
@@ -242,10 +236,8 @@ public class ParticleSystem //implements Serializable
     // EQUATION 2
     private double getDensity(Particle p) {
         double density = 0.;
-        for (Particle q : p.Ni) {//p.Ni) {
-            //if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
-                density += (q.m * Wpoly6(VMath.subtract(p.x_star, q.x_star), Constants.H));
-            //}
+        for (Particle q : p.Ni) {
+            density += (q.m * Wpoly6(VMath.subtract(p.x_star, q.x_star), Constants.H));
         }
         density += (p.m * Wpoly6(new Vector3d(0., 0., 0.), Constants.H));
         return density;
@@ -259,13 +251,11 @@ public class ParticleSystem //implements Serializable
         if (p.Ni.size() == 0) return 0.;
 
         for (Particle q : p.Ni) {
-            //if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
-                Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
-                grad_pk_Ci.scale( 1 / Constants.RHO);
-                sum_grad_Ci += grad_pk_Ci.lengthSquared();
-
-                grad_Ci.add(grad_pk_Ci);
-            //}
+            Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
+            grad_pk_Ci.scale( 1 / Constants.RHO);
+            sum_grad_Ci += grad_pk_Ci.lengthSquared();
+            grad_Ci.add(grad_pk_Ci);
+            
         }
 
         double total = sum_grad_Ci + grad_Ci.lengthSquared();
@@ -281,13 +271,11 @@ public class ParticleSystem //implements Serializable
     private Vector3d calcDeltaP(Particle p) {
         Vector3d delta_p = new Vector3d(0., 0., 0.);
         for (Particle q : p.Ni) { //p.Ni
-            //if (VMath.subtract(p.x_star, q.x_star).length() <= Constants.H) {
-                Vector3d pij = VMath.subtract(p.x_star, q.x_star);
-                Vector3d gradW = Wspiky(pij, Constants.H);
-                double s_corr = calcSCorr(pij);
-                gradW.scale(p.lambda + q.lambda - s_corr);
-                delta_p.add(gradW);
-            //}
+            Vector3d pij = VMath.subtract(p.x_star, q.x_star);
+            Vector3d gradW = Wspiky(pij, Constants.H);
+            double s_corr = calcSCorr(pij);
+            gradW.scale(p.lambda + q.lambda - s_corr);
+            delta_p.add(gradW);
         }
         return VMath.scalDiv(delta_p, Constants.RHO);
     }
@@ -310,22 +298,21 @@ public class ParticleSystem //implements Serializable
         return w;
     }
 
-    private Vector3d calcEta(Particle p, Vector3d w) {
+    private Vector3d calcEta(Particle p) {
         Vector3d eta = new Vector3d(0., 0., 0.);
         for (Particle q : p.Ni) {
             Vector3d grad = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
-            grad.scale(q.m / getDensity(q) * w.length());
+            grad.scale(q.m / Math.max(getDensity(q), 100.) * q.omega.length());
             eta.add(grad);
         }
         return VMath.norm(eta);
     }
 
     private Vector3d calcFVort(Particle p) {
-        Vector3d w = calcVorticity(p);
-        Vector3d eta = calcEta(p, w);  
+        Vector3d eta = calcEta(p);  
         Vector3d f = new Vector3d(0., 0., 0.);
-        f.cross(eta, w);
-        f.scale(Constants.EPSILON);
+        f.cross(eta, p.omega);
+        f.scale(Constants.V_EPSILON);
         return f;
     }
 
@@ -353,7 +340,6 @@ public class ParticleSystem //implements Serializable
                 p.Ni.clear();
                 p.f.y -= p.m * 10.f;
                 p.v.scaleAdd(dt, p.f, p.v); //p.v += dt * p.f;
-                //System.out.println("old v = " + p.v);
                 p.x_star.scaleAdd(dt, p.v, p.x);
                 p.x_star = handleBoxCollisions(p.x_star);
             }
@@ -376,7 +362,6 @@ public class ParticleSystem //implements Serializable
             for (Particle p : P) {
                 //calculate delta pi
                 p.dp = calcDeltaP(p);
-                //ystem.out.println("delta p = " + delta_p);
             }
 
             for (Particle p : P) {
@@ -389,10 +374,15 @@ public class ParticleSystem //implements Serializable
 
         /// TIME-STEP: (Symplectic Euler for now):
         for (Particle p : P) {
+            p.omega = calcVorticity(p);
+        }
+
+        for (Particle p : P) {
             Vector3d v = new Vector3d(p.x_star);
             v.sub(p.x);
             v.scale(1 / dt);
             p.v = v;
+            p.v.add(calcFVort(p));
             p.v.add(XPSHViscosity(p));
 
             p.x = new Point3d(p.x_star);
