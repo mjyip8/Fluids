@@ -178,19 +178,19 @@ public class ParticleSystemBuilder implements GLEventListener
         /// DRAW COMPUTATIONAL CELL BOUNDARY:
         gl.glColor3f(1, 0, 0);
         gl.glBegin(GL2.GL_LINE_LOOP);
-        gl.glVertex3d(0, 0, 0);   gl.glVertex3d(1, 0, 0);   gl.glVertex3d(1, 1, 0);  gl.glVertex3d(0, 1, 0);
+        gl.glVertex3d(0, 0, 0);   gl.glVertex3d(gui.rightWallLoc, 0, 0);   gl.glVertex3d(gui.rightWallLoc, 1, 0);  gl.glVertex3d(0, 1, 0);
         gl.glEnd();
         gl.glBegin(GL2.GL_LINE_LOOP);
-        gl.glVertex3d(0, 0, 1);   gl.glVertex3d(1, 0, 1);   gl.glVertex3d(1, 1, 1);  gl.glVertex3d(0, 1, 1);
+        gl.glVertex3d(0, 0, 1);   gl.glVertex3d(gui.rightWallLoc, 0, 1);   gl.glVertex3d(gui.rightWallLoc, 1, 1);  gl.glVertex3d(0, 1, 1);
         gl.glEnd();
         gl.glBegin(GL2.GL_LINES);
         gl.glVertex3d(0, 0, 0);   gl.glVertex3d(0, 0, 1);
         gl.glEnd();
         gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(1, 0, 0);   gl.glVertex3d(1, 0, 1);
+        gl.glVertex3d(gui.rightWallLoc, 0, 0);   gl.glVertex3d(gui.rightWallLoc, 0, 1);
         gl.glEnd();
         gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(1, 1, 0);   gl.glVertex3d(1, 1, 1);
+        gl.glVertex3d(gui.rightWallLoc, 1, 0);   gl.glVertex3d(gui.rightWallLoc, 1, 1);
         gl.glEnd();
         gl.glBegin(GL2.GL_LINES);
         gl.glVertex3d(0, 1, 0);   gl.glVertex3d(0, 1, 1);
@@ -204,6 +204,7 @@ public class ParticleSystemBuilder implements GLEventListener
     class BuilderGUI implements MouseListener, MouseMotionListener, KeyListener
     {
         boolean simulate = false;
+        double rightWallLoc = 1.0;
 
         /** Current build task (or null) */
         Task task;
@@ -223,7 +224,7 @@ public class ParticleSystemBuilder implements GLEventListener
             AbstractButton[] buttons      = { new JButton("Reset"),
                 new JButton("Load File"),
                 new JToggleButton ("Create Particle", false),
-                new JToggleButton ("[Some Other Task]", false),
+                new JToggleButton ("[Other task]", false),
             };
 
             for(int i=0; i<buttons.length; i++) {
@@ -245,6 +246,7 @@ public class ParticleSystemBuilder implements GLEventListener
         {
             /// TODO: OVERRIDE THIS INTEGRATOR (Doesn't use Force objects properly)
             if(simulate) {
+                PS.rightWallLoc = rightWallLoc;
                 if(true) {//ONE EULER STEP
                     PS.advanceTime(DT);
                 }
@@ -266,7 +268,7 @@ public class ParticleSystemBuilder implements GLEventListener
             }
 
             // Display task if any
-            if(task != null) task.display(gl);
+            if(task != null) task.display(gl, rightWallLoc);
         }
 
         /**
@@ -335,9 +337,16 @@ public class ParticleSystemBuilder implements GLEventListener
         public void dispatchKey(KeyEvent e)
         {
             switch(e.getKeyCode()) {
+                case KeyEvent.VK_J:
+                    rightWallLoc -= .01;
+                    if (rightWallLoc <= 0.3) rightWallLoc = 0.3;
+                    break;
+                case KeyEvent.VK_K:
+                    rightWallLoc += .01;
+                    break;
                 case KeyEvent.VK_SPACE:
                     simulate = !simulate;
-                    if(simulate) {
+                    if (simulate) {
                         System.out.println("Starting simulation...");
                     }
                     else {
@@ -403,7 +412,7 @@ public class ParticleSystemBuilder implements GLEventListener
         {
             /** Displays any task-specific OpengGL information,
              * e.g., highlights, etc. */
-            public void display(GL2 gl) {}
+            public void display(GL2 gl, double rightWallLoc) {}
 
             // Methods required for the implementation of MouseListener
             public void mouseEntered (MouseEvent e) {}

@@ -19,7 +19,7 @@ public interface Constants
     public static final double DELTA_Q = .03;
     public static final double N = 4;
     public static final double C = 0.00001;
-    public static final double V_EPSILON = .0000022;
+    public static final double V_EPSILON = .0000018;
 
     public static final int GRID_SIZE = 10;
 

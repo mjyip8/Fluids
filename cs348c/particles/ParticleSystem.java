@@ -19,6 +19,8 @@ public class ParticleSystem //implements Serializable
     /** Current simulation time. */
     public double time = 0;
 
+    public double rightWallLoc = 1.;
+
     /** List of Particle objects. */
     public ArrayList<Particle>   P = new ArrayList<Particle>();
 
@@ -121,17 +123,17 @@ public class ParticleSystem //implements Serializable
         time = 0;
     }
 
-    private double clamp(double x) {
-        if (x <= 0.) return 0;
-        if (x >= 1.) return 1.;
+    private double clamp(double x, double min, double max) {
+        if (x <= min) return min;
+        if (x >= max) return max;
         return x;
     }
 
     private Point3d handleBoxCollisions(Point3d old) {
         Point3d result = new Point3d(old);
-        result.x = clamp(result.x);
-        result.y = clamp(result.y);
-        result.z = clamp(result.z);
+        result.x = clamp(result.x, 0., rightWallLoc);
+        result.y = clamp(result.y, 0., 1.);
+        result.z = clamp(result.z, 0., 1.);
         return result;
     }
 
@@ -228,8 +230,8 @@ public class ParticleSystem //implements Serializable
 
     // EQUATION 1
     private double Ci(Particle p) {
-        double density = getDensity(p);
-        double result = (density / Constants.RHO) - 1;
+        p.density = getDensity(p);
+        double result = (p.density / Constants.RHO) - 1;
         return result;
     }
 
@@ -302,7 +304,8 @@ public class ParticleSystem //implements Serializable
         Vector3d eta = new Vector3d(0., 0., 0.);
         for (Particle q : p.Ni) {
             Vector3d grad = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
-            grad.scale(q.m / Math.max(getDensity(q), 100.) * q.omega.length());
+            q.density = getDensity(q);
+            grad.scale(q.m / q.density * q.omega.length());
             eta.add(grad);
         }
         return VMath.norm(eta);
