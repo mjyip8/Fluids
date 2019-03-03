@@ -343,6 +343,7 @@ public class ParticleSystemBuilder implements GLEventListener
                     break;
                 case KeyEvent.VK_K:
                     rightWallLoc += .01;
+                    if (rightWallLoc >= 1) rightWallLoc = 1;
                     break;
                 case KeyEvent.VK_SPACE:
                     simulate = !simulate;

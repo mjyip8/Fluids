@@ -41,8 +41,8 @@ else:
                 <integer name="sampleCount" value="32"/>
             </sampler>
             
-            <!-- Generate an EXR image at HD resolution -->
-            <film type="hdrfilm">
+            <!-- Generate a PNG image at HD resolution -->
+            <film type="ldrfilm">
                 <integer name="width" value="1920"/>
                 <integer name="height" value="1080"/>
             </film>

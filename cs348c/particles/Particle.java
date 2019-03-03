@@ -89,28 +89,23 @@ public class Particle
         // Hack to make things more colorful/interesting
         c[1] = (float)x.y;
 
-        /*if (density > 5400) {
+        if (density > 5300) {
             if (density > 6500) {
-                c[1] = 1;
+                c[1] = 0;
             } else {
-                c[1] = ((float) density - 5400)/(6500 - 5400);
+                c[0] = ((float) density - 5300)/1500;
+                c[1] = ((float) density - 5300)/(6500 - 5300);
             }
-        } else {
+        } else if (v.length() > 1) {
             c[0] = 1;
             c[1] = 1;
         }
 
-        if (v.length() < .4 && x.y < .2) {
+        if (x.y <= 0.02) {
             c[1] = (float) x.y;
-        }*/
-
-
-        //if (density < 5600) {
-            //c[0] = 1 - (5400 - (float) density)/5000;
-            //c[1] =  1 - (5400 - (float) density)/17000;
-        //}
+            c[0] = 0;
+        }
         
-    
         gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, c, 0); // Color used by shader
 
         /// DRAW ORIGIN-CIRCLE TRANSLATED TO "p":

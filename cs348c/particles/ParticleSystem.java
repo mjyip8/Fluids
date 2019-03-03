@@ -1,7 +1,6 @@
 package cs348c.particles;
 
 import java.util.*;
-import java.util.HashSet;
 import javax.vecmath.*;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.util.glsl.*;
@@ -27,7 +26,7 @@ public class ParticleSystem //implements Serializable
     /** List of Force objects. */
     public ArrayList<Force>      F = new ArrayList<Force>();
 
-    public HashMap<Vector3d, Set<Particle>> grid = new HashMap<Vector3d, Set<Particle>>();
+    private Grid grid = new Grid();
 
     /**
      * true iff prog has been initialized. This cannot be done in the
@@ -123,201 +122,6 @@ public class ParticleSystem //implements Serializable
         time = 0;
     }
 
-    private double clamp(double x, double min, double max) {
-        if (x <= min) return min;
-        if (x >= max) return max;
-        return x;
-    }
-
-    private Point3d handleBoxCollisions(Point3d old) {
-        Point3d result = new Point3d(old);
-        result.x = clamp(result.x, 0., rightWallLoc);
-        result.y = clamp(result.y, 0., 1.);
-        result.z = clamp(result.z, 0., 1.);
-        return result;
-    }
-
-    private void addP2Grid(Particle p) {
-
-
-        int x = (int) (.999999999999 * p.x_star.x * Constants.GRID_SIZE);
-        int y = (int) (.999999999999 * p.x_star.y * Constants.GRID_SIZE);
-        int z = (int) (.999999999999 * p.x_star.z * Constants.GRID_SIZE);
-
-        Vector3d cell = new Vector3d(x, y, z);
-        if (!grid.containsKey(cell)) {
-            Set<Particle> residents = new HashSet<Particle>();
-            residents.add(p);
-            grid.put(cell, residents);
-        } else {
-            Set<Particle> residents = grid.get(cell);
-            residents.add(p);
-            grid.put(cell, residents);
-        }
-    }
-
-
-    private double Wpoly6(Vector3d r, double h) {
-        if (r.length() <= 0. || r.length() >= h) {
-            return 0.;
-        }
-
-        double result = 315. / (64. * Math.PI * Math.pow(h, 9));
-        result *= Math.pow((h * h - r.lengthSquared()), 3);
-        //System.out.println("Wpoly6 = " + result);
-        return result;
-    }
-
-    private Vector3d Wspiky(Vector3d r, double h) {
-        if (r.length() <= 0. || r.length() >= h) {
-            return new Vector3d(0., 0., 0.);
-        }
-        Vector3d norm = VMath.norm(r);
-        double scale = Math.pow(h - r.length(), 2) * 45. / (Math.PI * Math.pow(h, 6));
-        return VMath.scalMult(norm, -scale);
-    }
-
-
-    private double distance(Particle p, Particle q) {
-        Vector3d diff = VMath.subtract(p.x_star, q.x_star);
-        return diff.length();
-    }
-
-    private Set<Particle> getCellNeighbors(Vector3d cell, Particle p) {
-        Set<Particle> Ni = new HashSet<Particle>();
-        for (Particle q : grid.get(cell)) {
-            if (p != q && distance(p, q) < Constants.H) {
-                Ni.add(q);
-            }
-        }
-        
-        return Ni;
-    } 
-
-    private Set<Particle> getNeighbors(Particle p) {
-        int x = (int) (.999999999999 * p.x_star.x * Constants.GRID_SIZE);
-        int y = (int) (.999999999999 * p.x_star.y * Constants.GRID_SIZE);
-        int z = (int) (.999999999999 * p.x_star.z * Constants.GRID_SIZE);
-        Set<Particle> Ni = new HashSet<Particle>();
-
-        for (int i = Math.max(0, x - 1); i < Math.min(Constants.GRID_SIZE, x + 2); i++) {
-            for (int j = Math.max(0, y - 1); j < Math.min(Constants.GRID_SIZE, y + 2); j++) {
-                for (int k = Math.max(0, z - 1); k < Math.min(Constants.GRID_SIZE, z + 2); k++) {
-                    Vector3d curr = new Vector3d(i, j, k);
-                    if (grid.containsKey(curr)) {
-                        Ni.addAll(getCellNeighbors(curr, p));
-                    }
-                }
-            }
-        }
-
-        return Ni;
-    }
-
-    private Vector3d XPSHViscosity(Particle p) {
-        Vector3d result = new Vector3d(0., 0., 0.);
-
-        for (Particle q : p.Ni) {
-            Vector3d vij = VMath.subtract(q.v, p.v);
-            Vector3d pij = VMath.subtract(p.x_star, q.x_star);
-            double W = Wpoly6(pij, Constants.H);
-            vij.scale(W);
-            result.add(vij);                    
-        }
-        result.scale(Constants.C);
-        return result;
-    }
-
-    // EQUATION 1
-    private double Ci(Particle p) {
-        p.density = getDensity(p);
-        double result = (p.density / Constants.RHO) - 1;
-        return result;
-    }
-
-    // EQUATION 2
-    private double getDensity(Particle p) {
-        double density = 0.;
-        for (Particle q : p.Ni) {
-            density += (q.m * Wpoly6(VMath.subtract(p.x_star, q.x_star), Constants.H));
-        }
-        density += (p.m * Wpoly6(new Vector3d(0., 0., 0.), Constants.H));
-        return density;
-    }
-
-        // EQUATION 8
-    private double sumKGradCiSq(Particle p) {
-        double sum_grad_Ci = 0.;
-        Vector3d grad_Ci = new Vector3d(0., 0., 0.);
-
-        if (p.Ni.size() == 0) return 0.;
-
-        for (Particle q : p.Ni) {
-            Vector3d grad_pk_Ci = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
-            grad_pk_Ci.scale( 1 / Constants.RHO);
-            sum_grad_Ci += grad_pk_Ci.lengthSquared();
-            grad_Ci.add(grad_pk_Ci);
-            
-        }
-
-        double total = sum_grad_Ci + grad_Ci.lengthSquared();
-        return sum_grad_Ci + grad_Ci.lengthSquared();
-    }
-
-    // EQUATION 11
-    private double calcLambda(Particle p) {
-        return -Ci(p)/(sumKGradCiSq(p) + Constants.EPSILON);
-    }
-
-    // EQUATION 12
-    private Vector3d calcDeltaP(Particle p) {
-        Vector3d delta_p = new Vector3d(0., 0., 0.);
-        for (Particle q : p.Ni) { //p.Ni
-            Vector3d pij = VMath.subtract(p.x_star, q.x_star);
-            Vector3d gradW = Wspiky(pij, Constants.H);
-            double s_corr = calcSCorr(pij);
-            gradW.scale(p.lambda + q.lambda - s_corr);
-            delta_p.add(gradW);
-        }
-        return VMath.scalDiv(delta_p, Constants.RHO);
-    }
-
-    private double calcSCorr(Vector3d pij) {
-        Vector3d delta_q_v = new Vector3d(Constants.DELTA_Q, 0., 0.);
-        double ratio = Wpoly6(pij, Constants.H) / Wpoly6(delta_q_v, Constants.H);
-        return Constants.S_CORR * Math.pow(ratio, Constants.N);
-    }
-
-    private Vector3d calcVorticity(Particle p) {
-        Vector3d w = new Vector3d(0., 0., 0.);
-        for (Particle q : p.Ni) {
-            Vector3d vij = VMath.subtract(q.v, p.v);
-            Vector3d pji = VMath.subtract(p.x_star, q.x_star);
-            Vector3d cp = new Vector3d(0., 0., 0.);
-            cp.cross(vij, Wspiky(pji, Constants.H));
-            w.add(cp);
-        }
-        return w;
-    }
-
-    private Vector3d calcEta(Particle p) {
-        Vector3d eta = new Vector3d(0., 0., 0.);
-        for (Particle q : p.Ni) {
-            Vector3d grad = Wspiky(VMath.subtract(p.x_star, q.x_star), Constants.H);
-            q.density = getDensity(q);
-            grad.scale(q.m / q.density * q.omega.length());
-            eta.add(grad);
-        }
-        return VMath.norm(eta);
-    }
-
-    private Vector3d calcFVort(Particle p) {
-        Vector3d eta = calcEta(p);  
-        Vector3d f = new Vector3d(0., 0., 0.);
-        f.cross(eta, p.omega);
-        f.scale(Constants.V_EPSILON);
-        return f;
-    }
 
     /**
      * Simple implementation of a first-order time step. 
@@ -325,7 +129,7 @@ public class ParticleSystem //implements Serializable
      */
     public synchronized void advanceTime(double dt)
     {
-        grid = new HashMap<Vector3d, Set<Particle>>();
+        Grid grid = new Grid();
 
         /// Clear force accumulators:
         for(Particle p : P)  {
@@ -344,32 +148,32 @@ public class ParticleSystem //implements Serializable
                 p.f.y -= p.m * 10.f;
                 p.v.scaleAdd(dt, p.f, p.v); //p.v += dt * p.f;
                 p.x_star.scaleAdd(dt, p.v, p.x);
-                p.x_star = handleBoxCollisions(p.x_star);
+                p.x_star = Incompress.handleBoxCollisions(p.x_star, rightWallLoc);
             }
 
             for (Particle p : P) {
-                addP2Grid(p);
+                grid.addP2Grid(p);
             }
         }
 
         for (Particle p : P) {
-            p.Ni = getNeighbors(p);
+            p.Ni = grid.getNeighbors(p);
         }
 
         for (int i = 0; i < Constants.DENSITY_IT; i++) {
             for (Particle p : P) {
                 // calculate lambda
-                p.lambda = calcLambda(p);
+                p.lambda = Incompress.calcLambda(p);
             }
 
             for (Particle p : P) {
-                //calculate delta pi
-                p.dp = calcDeltaP(p);
+                //calculate delta p
+                p.dp = Incompress.calcDeltaP(p);
             }
 
             for (Particle p : P) {
                 p.x_star.add(p.dp);
-                p.x_star = handleBoxCollisions(p.x_star);
+                p.x_star = Incompress.handleBoxCollisions(p.x_star, rightWallLoc);
             }
 
         }
@@ -377,7 +181,7 @@ public class ParticleSystem //implements Serializable
 
         /// TIME-STEP: (Symplectic Euler for now):
         for (Particle p : P) {
-            p.omega = calcVorticity(p);
+            p.omega = Vorticity.calcVorticity(p);
         }
 
         for (Particle p : P) {
@@ -385,14 +189,14 @@ public class ParticleSystem //implements Serializable
             v.sub(p.x);
             v.scale(1 / dt);
             p.v = v;
-            p.v.add(calcFVort(p));
-            p.v.add(XPSHViscosity(p));
+            p.v.add(Vorticity.calcFVort(p));
+            p.v.add(Viscosity.XPSHViscosity(p));
 
             p.x = new Point3d(p.x_star);
         }
 
         time += dt;
-        grid.clear();
+        grid.clearGrid();
     }
 
     /**
