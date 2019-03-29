@@ -4,8 +4,14 @@ I implemented a particle-based fluid simulator related to smoothed particle hydr
 
 ## EXTRA FEATURES
 1. I rendered dam break in Mitsuba.
+
 ![alt text](https://raw.githubusercontent.com/mjyip8/Fluids/master/artifacts/mitsuba_render.gif)
 
 2. I also created an feature in ParticleSystemBuilder where you can change the position of one of the boxes walls while the simulation is going. You press the key 'J' to go to the left and the key 'K' to go to the right.
 
+![alt text](https://raw.githubusercontent.com/mjyip8/Fluids/master/artifacts/feature.gif)
+
 3. I changed the color of the particles in Particle class so that particles in areas with less density are more white to make the waves look more clear.
+
+![alt text](https://raw.githubusercontent.com/mjyip8/Fluids/master/artifacts/density.gif)
+
