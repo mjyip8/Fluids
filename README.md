@@ -1,6 +1,10 @@
 # Position-Based Fluids
 ## IMPLEMENTATION DETAILS
-I implemented a particle-based fluid simulator related to smoothed particle hydrodynamics (SPH), based on the "Position Based Fluids" (PBF) approach described in [Macklin and Muller 2013](http://blog.mmacklin.com/publications/). As outlined by the paper, I used density to enforce incompressibility in the Incompress class. I added surface tension for more blobbiness and vorticity confinement in the Vorticity class and viscosity in the Viscosity class for more fluid-like motion. 
+I implemented a particle-based fluid simulator related to smoothed particle hydrodynamics (SPH), based on the "Position Based Fluids" (PBF) approach described in [Macklin and Muller 2013](http://blog.mmacklin.com/publications/). 
+- Used density to enforce incompressibility in the Incompress class. 
+- Added surface tension for more blobbiness and vorticity confinement in the Vorticity class.
+- Added viscosity in the Viscosity class for more fluid-like motion. 
+- Used grid based acceleration structure for neighbor-finding.
 
 ## EXTRA FEATURES
 1. I rendered dam break in Mitsuba.
